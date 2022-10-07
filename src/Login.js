@@ -10,7 +10,7 @@ import React, {useState} from 'react'
 
 import firebase from "./services/firebaseConfig"
 
-export default function Login() {
+export default function Login({changeStatus}) {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,8 +23,8 @@ export default function Login() {
       //login
 
       const user = firebase.auth().signInWithEmailAndPassword(email, password)
-        .then(user => {
-          
+        .then(value => {
+          changeStatus(value.user.uid)
         }).catch(err => {
           alert('Opss! Parece que ouve um erro!')
           return
@@ -34,8 +34,8 @@ export default function Login() {
       // register
 
       const user = firebase.auth().createUserWithEmailAndPassword(email, password)
-        .then(user => {
-
+        .then(value => {
+          changeStatus(value.user.uid)
         }).catch(err => {
           alert('Opss! Parece que ouve um erro!')
           return
