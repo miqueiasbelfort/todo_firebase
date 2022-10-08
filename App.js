@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet,
   Text,
@@ -6,30 +6,101 @@ import {
   SafeAreaView,
   TextInput,
   TouchableOpacity,
-  FlatList
+  FlatList,
+  Keyboard
 } from 'react-native';
 
 import Login from './src/Login';
 import TaskList from './src/components/TaskList';
 
+import firebase from './src/services/firebaseConfig';
+
 export default function App() {
 
-  const tasks = [
-    {
-      key: '1',
-      name: 'Comprar Coca'
-    },
-    {
-      key: '2',
-      name: 'Estudar Facu'
-    }
-  ]
+  const inputRef = useRef(null)
 
-  const [user, setUser] = useState(123)
+  const [user, setUser] = useState(null)
   const [newTask, setNewTask] = useState('')
+  const [tasks, setTasks] = useState([])
+  const [key, setKey] = useState('')
+
+  useEffect(() => {
+
+    function getUser(){
+      if(!user){
+        return
+      }
+      firebase.database().ref('todos').child(user).once('value', (snapshot) => {
+        setTasks([])
+
+        snapshot?.forEach(childItem => {
+          let data = { key: childItem.key, name: childItem.val().name }
+          setTasks(old => [...old, data])
+        })
+      })
+    }
+    getUser()
+
+  }, [user])
+  
+
+  const handleAdd = async() => {
+    if(newTask === ''){
+      alert('Vamos lá! Digite sua primeira tarefa!')
+      return
+    }
+
+    if(key !== ''){
+      firebase.database().ref('todos').child(user).child(key).update({
+        name: newTask
+      })
+      .then(() => {
+        
+        const taskIndex = tasks.findIndex(item => item.key === key)
+        let taskClone = tasks
+        taskClone[taskIndex].name = newTask
+        setTasks([...taskClone])
+      })
+      Keyboard.dismiss()
+      setNewTask('')
+      setKey('')
+      return
+    }
+
+    let todo = firebase.database().ref('todos').child(user)
+    let chave = todo.push().key
+
+    todo.child(chave).set({
+      name: newTask
+    })
+      .then(() => {
+        const data = {
+          key: chave,
+          name: newTask
+        }
+        setTasks(old => [...old, data])
+      })
+    setNewTask('')
+    Keyboard.dismiss()
+  }
+
+  const handleDelete = async(key) => {
+    firebase.database().ref('todos').child(user).child(key).remove()
+      .then(() => {
+        const findTaks = tasks.filter(item => item.key !== key)
+        setTasks(findTaks)
+      })
+  }
+  const handleEdit = async(data) => {
+    setKey(data.key)
+    setNewTask(data.name)
+    inputRef.current.focus()
+  }
 
   if(!user){
-    return <Login changeStatus={(user) => setUser(user)}/>
+    return <Login 
+      changeStatus={(user) => setUser(user)}
+    />
   }
   return (
     <SafeAreaView style={styles.container}>
@@ -40,9 +111,11 @@ export default function App() {
           style={styles.input}
           value={newTask}
           onChangeText={value => setNewTask(value)}
+          ref={inputRef}
         />
         <TouchableOpacity 
           style={styles.button}
+          onPress={handleAdd}
         >
           <Text style={styles.btnText}>+</Text>
         </TouchableOpacity>
@@ -52,7 +125,11 @@ export default function App() {
         data={tasks}
         keyExtractor={item => item.key}
         renderItem={({item}) => (
-          <TaskList data={item}/>
+          <TaskList 
+            data={item}
+            deleteItem={handleDelete}
+            editItem={handleEdit}
+          />
         )}
       />
 
