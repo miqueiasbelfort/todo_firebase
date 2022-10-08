@@ -15,6 +15,8 @@ import TaskList from './src/components/TaskList';
 
 import firebase from './src/services/firebaseConfig';
 
+import { AntDesign } from '@expo/vector-icons';
+
 export default function App() {
 
   const inputRef = useRef(null)
@@ -96,6 +98,11 @@ export default function App() {
     setNewTask(data.name)
     inputRef.current.focus()
   }
+  const cancelEdit = () => {
+    setKey('')
+    setNewTask('')
+    Keyboard.dismiss()
+  }
 
   if(!user){
     return <Login 
@@ -104,6 +111,23 @@ export default function App() {
   }
   return (
     <SafeAreaView style={styles.container}>
+
+      {
+        key.length > 0 && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 15,
+            }}
+          >
+            <TouchableOpacity onPress={cancelEdit}>
+              <AntDesign name="closecircleo" size={20} color="#FF0000" />
+            </TouchableOpacity>
+            <Text style={{marginLeft: 10, color: '#ff0000'}}>Cancelar Edição!</Text>
+          </View>
+        )
+      }
       
       <View style={styles.containerInput}>
         <TextInput
